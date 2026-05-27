@@ -4,8 +4,16 @@ from einops import rearrange, einsum
 import numpy as np
 
 
-from cs336_basics.m import TransformerLM
+from cs336_basics.m import TransformerLM,softmax
 
+
+
+
+import os
+import csv
+import json
+import time
+import math
 # 4 Training a Transformer LM 训练 Transformer LM
 # 现在我们已经有了预处理数据（通过 tokenizer）和模型（Transformer）的步骤。剩下的是
 # 构建所有用于支持训练的代码。这包括：
@@ -413,6 +421,90 @@ def load_checkpoint(src, model, optimizer):
 
 
 
+class ExperimentLogger:
+    def __init__(self, log_dir: str, config: dict, append: bool = False):
+        self.log_dir = log_dir
+        os.makedirs(log_dir, exist_ok=True)
+
+        self.metrics_path = os.path.join(log_dir, "metrics.csv")
+        self.config_path = os.path.join(log_dir, "config.json")
+        self.start_time = time.perf_counter()
+
+        self.fieldnames = [
+            "step",
+            "wallclock_time",
+            "tokens_processed",
+            "lr",
+            "train_loss",
+            "val_loss",
+            "val_perplexity",
+        ]
+
+        # config 每次覆盖一般没问题，因为同一个实验配置应该一致
+        with open(self.config_path, "w") as f:
+            json.dump(config, f, indent=2)
+
+        # 如果 append=True 且 metrics.csv 已存在，就不重写 header
+        if append and os.path.exists(self.metrics_path):
+            pass
+        else:
+            with open(self.metrics_path, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+                writer.writeheader()
+
+    def _write_row(self, row: dict):
+        with open(self.metrics_path, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+            writer.writerow(row)
+
+    def log_train(self, step, loss, lr, batch_size, context_length):
+        wallclock_time = time.perf_counter() - self.start_time
+        tokens_processed = step * batch_size * context_length
+
+        row = {
+            "step": step,
+            "wallclock_time": wallclock_time,
+            "tokens_processed": tokens_processed,
+            "lr": lr,
+            "train_loss": loss,
+            "val_loss": "",
+            "val_perplexity": "",
+        }
+
+        self._write_row(row)
+
+        print(
+            f"step {step}: train_loss={loss:.4f}, "
+            f"lr={lr:.6e}, time={wallclock_time:.1f}s",
+            flush=True,
+        )
+
+    def log_val(self, step, val_loss, lr, batch_size, context_length):
+        wallclock_time = time.perf_counter() - self.start_time
+        tokens_processed = step * batch_size * context_length
+        val_perplexity = math.exp(val_loss)
+
+        row = {
+            "step": step,
+            "wallclock_time": wallclock_time,
+            "tokens_processed": tokens_processed,
+            "lr": lr,
+            "train_loss": "",
+            "val_loss": val_loss,
+            "val_perplexity": val_perplexity,
+        }
+
+        self._write_row(row)
+
+        print(
+            f"step {step}: val_loss={val_loss:.4f}, "
+            f"ppl={val_perplexity:.4f}, time={wallclock_time:.1f}s",
+            flush=True,
+        )
+
+
+
+
 
 # 5.3 Training loop 训练循环
 
@@ -465,6 +557,43 @@ def training_together(
     dtype=None,
     resume_from=None,
 ):
+    #日志
+    log_dir = os.path.dirname(checkpoint_path)
+    if log_dir == "":
+        log_dir = "."
+
+    config = {
+        "train_data_path": train_data_path,
+        "val_data_path": val_data_path,
+        "checkpoint_path": checkpoint_path,
+        "vocab_size": vocab_size,
+        "context_length": context_length,
+        "d_model": d_model,
+        "num_layers": num_layers,
+        "num_heads": num_heads,
+        "d_ff": d_ff,
+        "rope_theta": rope_theta,
+        "batch_size": batch_size,
+        "total_steps": total_steps,
+        "alpha_max": alpha_max,
+        "alpha_min": alpha_min,
+        "warmup_steps": warmup_steps,
+        "cosine_steps": cosine_steps,
+        "betas": betas,
+        "eps": eps,
+        "weight_decay": weight_decay,
+        "max_grad_norm": max_grad_norm,
+        "device": str(device),
+        "dtype": str(dtype),
+    }
+
+    logger = ExperimentLogger(
+    log_dir,
+    config,
+    append=resume_from is not None,
+)
+
+
     train_data=np.load(train_data_path, mmap_mode="r")
     val_data=np.load(val_data_path, mmap_mode="r")
 # 这样不会把整个 tokenized dataset 加载进内存。
@@ -506,7 +635,15 @@ def training_together(
 
         if t % log_interval == 0:#定期打印训练损失
             # print(t,val_loss,math.exp(val_loss))
-            print(f"step {t}: val_loss={val_loss:.4f}, ppl={math.exp(val_loss):.4f}")
+            # print(f"step {t}: val_loss={loss:.4f}, ppl={math.exp(loss):.4f}")
+            #日志
+            logger.log_train(
+                step=t,
+                loss=loss.item(),
+                lr=lr,
+                batch_size=batch_size,
+                context_length=context_length,
+            )
 
         if t % eval_interval==0:#定期验证集验证
             model.eval()
@@ -518,7 +655,15 @@ def training_together(
             val_loss = val_loss/val_batches
             
             # print(t,val_loss,math.exp(val_loss))
-            print(f"step {t}: train_loss={loss.item():.4f}, lr={lr:.6e}")
+            # print(f"step {t}: train_loss={loss.item():.4f}, lr={lr:.6e}")
+             #日志
+            logger.log_val(
+                step=t,
+                val_loss=val_loss,
+                lr=lr,
+                batch_size=batch_size,
+                context_length=context_length,
+            )
 
             model.train()
         
@@ -554,3 +699,64 @@ def training_together(
 
 
 
+
+
+
+
+
+
+
+
+# 6 Generating text 生成文本
+
+# prompt是字符串
+# dtype = torch.long
+def Decoding(model,tokenizer,prompt,max_generated_tokens,temperature=1,Top_p=None,device="cpu"):
+#     • 为用户提供的 prompt 生成 completions（即接收某些 x1...t 并采样 completion，直
+# 到遇到 <|endoftext|> token）。
+# • 允许用户控制最大 generated tokens 数量。
+# • 给定 desired temperature value，在采样前对 predicted next-token distributions
+# 应用 softmax temperature scaling。
+# • Top-p sampling（[A. Holtzman et al., 2020] 也称 nucleus sampling），给定用户指
+# 定的 threshold value。
+    model.eval()
+    with torch.no_grad():
+        ids = tokenizer.encode(prompt)
+        input=torch.tensor(ids,dtype = torch.long,device=device).reshape(1,-1)
+        # x = torch.cat([x, new_row], dim=0)
+
+        num_tokens=0
+        while num_tokens <max_generated_tokens:
+            logits=model(input)
+            out=softmax(logits/temperature,-1)
+            p_tokens=out[:,-1,:][0]#取出最后一个词的概率分布
+            if Top_p is not None:
+                values,indices=torch.sort(p_tokens,descending=True)
+                p_cumsum=torch.cumsum(values, dim=0)
+                i=0
+                while  i < p_cumsum.numel() and p_cumsum[i]<=Top_p :
+                    i+=1
+                kept_probs=values[:i+1]
+                kept_indices = indices[:i+1]
+                sampled_pos = torch.multinomial(kept_probs / kept_probs.sum(), num_samples=1)
+                next_id = kept_indices[sampled_pos].reshape(1,1)
+                
+                
+
+
+            else:
+                next_id = torch.multinomial(p_tokens, num_samples=1).reshape(1,1)
+                # _,next_id=torch.max(p_tokens,dim=0)
+            input=torch.cat([input, next_id], dim=1)
+
+            num_tokens+=1
+            if tokenizer.vocab[next_id.item()]==b"<|endoftext|>":    #注意先编码
+                break
+    
+    # return tokenizer.decode(list(input[0]))
+    return tokenizer.decode(input[0].tolist())
+# input 是二维 tensor，decode 通常要一维 list。
+
+        #         byte_sequence = b"".join(vocab[token_id] for token_id in ids)
+
+        # text = byte_sequence.decode("utf-8", errors="replace")#先收集 bytes pieces，再一次性 join。
