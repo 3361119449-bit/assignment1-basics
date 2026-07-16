@@ -21,6 +21,7 @@ class Tokenizer:
     def __init__(self, vocab, merges, special_tokens=None):
         self.merges=merges
         self.vocab=vocab.copy()
+        self.cache={}
         if not special_tokens:
             self.special_tokens=[]
         else:
@@ -42,7 +43,12 @@ class Tokenizer:
 
         self.byte_vocab = [bytes([i]) for i in range(256)]
         self.PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-
+        self.pat = re.compile(self.PAT)
+        if self.special_tokens:
+            special_pattern = "(" + "|".join(re.escape(token) for token in self.special_tokens) + ")"
+            self.special_pat = re.compile(special_pattern)
+        else:
+            self.special_pat = None
 
 #         保存 vocab/merges
 # 处理 special_tokens: None -> []
@@ -86,12 +92,16 @@ class Tokenizer:
         if text=="":
             return []
         
-        if self.special_tokens==[]:#对空 pattern 做 split 不合适。***********
-            chunks=[text]#如果 special_tokens=[]，也应该返回列表。
-        else:
-            pattern = "(" + "|".join(re.escape(token) for token in self.special_tokens) + ")"
-            chunks=re.split(pattern, text)
+        # if self.special_tokens==[]:#对空 pattern 做 split 不合适。***********
+        #     chunks=[text]#如果 special_tokens=[]，也应该返回列表。
+        # else:
+        #     pattern = "(" + "|".join(re.escape(token) for token in self.special_tokens) + ")"
+        #     chunks=re.split(pattern, text)
 #说明：如果存在 special tokens，就先按 special token 切分文本，并保留 special token 本身，避免它被普通正则拆碎。
+        if self.special_pat is None:
+            chunks = [text]
+        else:
+            chunks = self.special_pat.split(text)
 
         id_list=[]
         for chunk in chunks:
@@ -103,40 +113,43 @@ class Tokenizer:
                 continue
 
             #说明：普通文本 chunk 才会进入这里，每个 match 是一个 pre-token。
-            for match in re.finditer(self.PAT,chunk):
+            # for match in re.finditer(self.PAT,chunk):
+            for match in self.pat.finditer(chunk):    
                 #这个循环运行完会得到pretoken[[b"t", b"h", b"e"],[b" ", b"c", b"a", b"t"]]
-                pretoken_bytes=list(self.byte_vocab[x] for x in match.group().encode("utf-8"))
-                #第一个 pretoken_bytes 'the' 初始表示为 [b't', b'h', b'e']
+#                 pretoken_bytes=list(self.byte_vocab[x] for x in match.group().encode("utf-8"))
+#                 #第一个 pretoken_bytes 'the' 初始表示为 [b't', b'h', b'e']
               
-                for step in range(len(self.merges)):
-                    #说明：重复查找当前 pre-token 中优先级最高的可合并 pair，直到没有 pair 能合并。
-                    merge_id=len(self.merges)
-                    for i in range(len(pretoken_bytes)-1):
-                        pair_now=(pretoken_bytes[i],pretoken_bytes[i+1])
-                        if pair_now in self.merge_ranks:
-                            merge_id=min(self.merge_ranks[pair_now],merge_id)
+#                 for step in range(len(self.merges)):
+#                     #说明：重复查找当前 pre-token 中优先级最高的可合并 pair，直到没有 pair 能合并。
+#                     merge_id=len(self.merges)
+#                     for i in range(len(pretoken_bytes)-1):
+#                         pair_now=(pretoken_bytes[i],pretoken_bytes[i+1])
+#                         if pair_now in self.merge_ranks:
+#                             merge_id=min(self.merge_ranks[pair_now],merge_id)
 
                     
-                    if merge_id==len(self.merges):
-                        break    
-                    pair=self.merges[merge_id]
-                    new_token=[]
-                    i=0#i需要初始化
-                    while i <= len(pretoken_bytes)-2:
-                        new_token.append(pretoken_bytes[i])
-                        if pretoken_bytes[i]==pair[0]:
-                            if pretoken_bytes[i+1]==pair[1]:
-                                new_token.pop()
-                                new_token.append(pretoken_bytes[i]+pretoken_bytes[i+1])
-                                i+=1
+#                     if merge_id==len(self.merges):
+#                         break    
+#                     pair=self.merges[merge_id]
+#                     new_token=[]
+#                     i=0#i需要初始化
+#                     while i <= len(pretoken_bytes)-2:
+#                         new_token.append(pretoken_bytes[i])
+#                         if pretoken_bytes[i]==pair[0]:
+#                             if pretoken_bytes[i+1]==pair[1]:
+#                                 new_token.pop()
+#                                 new_token.append(pretoken_bytes[i]+pretoken_bytes[i+1])
+#                                 i+=1
 
-                        i+=1
-                    if i==len(pretoken_bytes)-1:#注意索引，如果到了边界，且没有超过边界，就可以添加最后的元素
-                        new_token.append(pretoken_bytes[i])
-                    pretoken_bytes = new_token
-#说明：BPE merge 完成后，把每个 bytes token 转成最终 token id。
-                for token in pretoken_bytes:
-                    id_list.append(self.bytes_to_id[token])
+#                         i+=1
+#                     if i==len(pretoken_bytes)-1:#注意索引，如果到了边界，且没有超过边界，就可以添加最后的元素
+#                         new_token.append(pretoken_bytes[i])
+#                     pretoken_bytes = new_token
+# #说明：BPE merge 完成后，把每个 bytes token 转成最终 token id。
+#                 for token in pretoken_bytes:
+#                     id_list.append(self.bytes_to_id[token])
+                pretoken = match.group().encode("utf-8")
+                id_list.extend(self._encode_pretoken(pretoken))
 
 
         return id_list
@@ -146,7 +159,7 @@ class Tokenizer:
         #     给定一个字符串 iterable（例如 Python file handle），返回一个惰性地产生 token ID 的
         # generator。这是对无法直接加载到内存的大文件进行内存高效分词所必需的。
         #Memory considerations 内存考虑
-
+# 文本文件对象本身就是 iterable。
 
 
         # for text in iterable:
@@ -171,7 +184,7 @@ class Tokenizer:
 # → 对安全部分先按完整 special token 切分
 # → 普通文本部分再跑 GPT-2 regex
 
-        def _adjust_cut_if_inside_special(self, text: str, cut: int) -> int:
+        def _adjust_cut_if_inside_special(text: str, cut: int) -> int:
             """
             如果 cut 落在某个完整 special token 内部，
             就把 cut 移到这个 special token 的开头。
@@ -217,7 +230,8 @@ class Tokenizer:
             prev_match = None
             safe_cut = 0
 
-            for match in re.finditer(self.PAT, search_text):
+            # for match in re.finditer(self.PAT, search_text):
+            for match in self.pat.finditer(search_text):
                 if prev_match is not None:
                     safe_cut = prev_match.end()
                 prev_match = match
@@ -265,7 +279,104 @@ class Tokenizer:
         return text
 
 
+#这次ai给的稍微优化的代码
+    # def _encode_pretoken(self, pretoken: bytes) -> tuple[int, ...]:
+    #     # 1. 如果这个 pretoken 以前编码过，直接返回缓存结果
+    #     if pretoken in self.cache:
+    #         return self.cache[pretoken]
 
+    #     # 2. 如果没缓存，先拆成单字节 bytes
+    #     pretoken_bytes = [self.byte_vocab[b] for b in pretoken]
 
+    #     # 3. 不断找当前 pretoken 里 rank 最小的 pair 进行合并
+    #     while True:
+    #         best_pair = None
+    #         best_rank = len(self.merges)
 
+    #         for i in range(len(pretoken_bytes) - 1):
+    #             pair = (pretoken_bytes[i], pretoken_bytes[i + 1])
+    #             rank = self.merge_ranks.get(pair)
 
+    #             if rank is not None and rank < best_rank:
+    #                 best_rank = rank
+    #                 best_pair = pair
+
+    #         # 没有任何可合并 pair，结束
+    #         if best_pair is None:
+    #             break
+
+    #         # 4. 把 best_pair 在 pretoken_bytes 里全部合并
+    #         new_tokens = []
+    #         i = 0
+
+    #         while i < len(pretoken_bytes):
+    #             if (
+    #                 i < len(pretoken_bytes) - 1
+    #                 and pretoken_bytes[i] == best_pair[0]
+    #                 and pretoken_bytes[i + 1] == best_pair[1]
+    #             ):
+    #                 new_tokens.append(pretoken_bytes[i] + pretoken_bytes[i + 1])
+    #                 i += 2
+    #             else:
+    #                 new_tokens.append(pretoken_bytes[i])
+    #                 i += 1
+
+    #         pretoken_bytes = new_tokens
+
+    #     # 5. bytes token 转成 token id
+    #     ids = tuple(self.bytes_to_id[token] for token in pretoken_bytes)
+
+    #     # 6. 写入缓存
+    #     self.cache[pretoken] = ids
+
+    #     return ids
+
+    def _encode_pretoken(self, pretoken: bytes) -> tuple[int, ...]:
+        # 1. 先查缓存
+        if pretoken in self.cache:
+            return self.cache[pretoken]
+
+        # 2. 你的原始拆 bytes 写法
+        pretoken_bytes = list(self.byte_vocab[x] for x in pretoken)
+
+        # 3. 基本保留你原来的 merge 逻辑
+        for step in range(len(self.merges)):
+            merge_id = len(self.merges)
+
+            for i in range(len(pretoken_bytes) - 1):
+                pair_now = (pretoken_bytes[i], pretoken_bytes[i + 1])
+
+                if pair_now in self.merge_ranks:
+                    merge_id = min(self.merge_ranks[pair_now], merge_id)
+
+            if merge_id == len(self.merges):
+                break
+
+            pair = self.merges[merge_id]
+
+            new_token = []
+            i = 0
+
+            while i <= len(pretoken_bytes) - 2:
+                new_token.append(pretoken_bytes[i])
+
+                if pretoken_bytes[i] == pair[0]:
+                    if pretoken_bytes[i + 1] == pair[1]:
+                        new_token.pop()
+                        new_token.append(pretoken_bytes[i] + pretoken_bytes[i + 1])
+                        i += 1
+
+                i += 1
+
+            if i == len(pretoken_bytes) - 1:
+                new_token.append(pretoken_bytes[i])
+
+            pretoken_bytes = new_token
+
+        # 4. 转成 ids
+        ids = tuple(self.bytes_to_id[token] for token in pretoken_bytes)
+
+        # 5. 写入缓存
+        self.cache[pretoken] = ids
+
+        return ids

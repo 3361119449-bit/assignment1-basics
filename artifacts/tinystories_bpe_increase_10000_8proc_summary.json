@@ -1,0 +1,15 @@
+{
+  "input_path": "data/TinyStoriesV2-GPT4-train.txt",
+  "implementation": "cs336_basics.bpe_increase.run_train_bpe_increase",
+  "vocab_size_requested": 10000,
+  "num_processes": 8,
+  "special_tokens": [
+    "<|endoftext|>"
+  ],
+  "vocab_len": 10000,
+  "merges_len": 9743,
+  "python_elapsed_seconds": 88.40929396800038,
+  "longest_token_len_bytes": 15,
+  "longest_token_repr": "b' accomplishment'",
+  "first10_merges_repr": "[(b' ', b't'), (b'h', b'e'), (b' ', b'a'), (b' ', b's'), (b' ', b'w'), (b'n', b'd'), (b' t', b'he'), (b'e', b'd'), (b' ', b'b'), (b' t', b'o')]"
+}

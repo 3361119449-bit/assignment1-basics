@@ -1,0 +1,58 @@
+         971650479 function calls (971650382 primitive calls) in 215.539 seconds
+
+   Ordered by: cumulative time
+   List reduced from 170 to 50 due to restriction <50>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.301    0.301  215.539  215.539 /home/hapi/cs336/assignment1-basics/cs336_basics/bpe_increase.py:222(worker)
+   679617  151.502    0.000  211.820    0.000 /home/hapi/cs336/assignment1-basics/cs336_basics/bpe_increase.py:10(collect_pretoken_counts)
+682261869   30.990    0.000   30.990    0.000 /home/hapi/cs336/assignment1-basics/cs336_basics/bpe_increase.py:21(<genexpr>)
+134158370   11.238    0.000   11.238    0.000 {method 'group' of '_regex.Match' objects}
+134158370   11.048    0.000   11.048    0.000 {method 'encode' of 'str' objects}
+   679617    0.536    0.000    7.043    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_main.py:350(finditer)
+   679618    1.737    0.000    6.147    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_main.py:459(_compile)
+  1359395    1.291    0.000    3.491    0.000 /usr/lib/python3.12/enum.py:1562(__and__)
+        1    2.028    2.028    2.028    2.028 {method 'decode' of 'bytes' objects}
+  4078211    0.950    0.000    1.513    0.000 /usr/lib/python3.12/enum.py:1544(_get_value)
+        1    0.000    0.000    0.861    0.861 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_main.py:324(split)
+        1    0.861    0.861    0.861    0.861 {method 'split' of '_regex.Pattern' objects}
+  1359405    0.391    0.000    0.687    0.000 /usr/lib/python3.12/enum.py:726(__call__)
+  7476736    0.626    0.000    0.626    0.000 {built-in method builtins.isinstance}
+        1    0.529    0.529    0.529    0.529 {method 'read' of '_io.BufferedReader' objects}
+   679618    0.300    0.000    0.469    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+   679617    0.360    0.000    0.360    0.000 {method 'finditer' of '_regex.Pattern' objects}
+   679618    0.308    0.000    0.308    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_main.py:481(complain_unused_args)
+  1359405    0.296    0.000    0.297    0.000 /usr/lib/python3.12/enum.py:1129(__new__)
+   679669    0.122    0.000    0.122    0.000 {method 'get' of 'dict' objects}
+   679620    0.106    0.000    0.106    0.000 {built-in method builtins.hasattr}
+      4/2    0.000    0.000    0.020    0.010 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:452(_parse_pattern)
+     12/7    0.000    0.000    0.020    0.003 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:462(parse_sequence)
+       10    0.000    0.000    0.020    0.002 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1256(parse_escape)
+        4    0.000    0.000    0.020    0.005 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1453(parse_property)
+        4    0.000    0.000    0.019    0.005 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1731(lookup_property)
+        4    0.000    0.000    0.019    0.005 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1720(standardise_name)
+       10    0.000    0.000    0.019    0.002 {method 'join' of 'str' objects}
+        8    0.019    0.002    0.019    0.002 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1725(<genexpr>)
+        2    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:850(parse_paren)
+        1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1185(parse_flags_subpattern)
+        2    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1511(parse_set)
+        2    0.000    0.000    0.000    0.000 /usr/lib/python3.12/enum.py:1584(__invert__)
+        1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1166(parse_subpattern)
+        2    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1577(parse_set_imp_union)
+      2/1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:2143(optimise)
+        2    0.000    0.000    0.000    0.000 /usr/lib/python3.12/enum.py:1414(_missing_)
+     12/7    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:3514(optimise)
+       28    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:2588(__init__)
+        1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:370(_compile_firstset)
+       18    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:419(make_case_flags)
+      2/1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:2237(_flatten_branches)
+        7    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1600(parse_set_member)
+        7    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1641(parse_set_item)
+     46/3    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:1992(compile)
+        1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:380(_check_firstset)
+      9/6    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:3526(pack_characters)
+      2/1    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:2217(_compile)
+       28    0.000    0.000    0.000    0.000 /usr/lib/python3.12/enum.py:1404(_iter_member_by_def_)
+        5    0.000    0.000    0.000    0.000 /home/hapi/cs336/assignment1-basics/.venv/lib/python3.12/site-packages/regex/_regex_core.py:3593(_compile)
+
+

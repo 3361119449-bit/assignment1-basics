@@ -161,3 +161,10 @@ cython_debug/
 
 .ruff_cache/
 *.zip
+
+# Local datasets and generated training outputs.
+data/
+runs/
+
+# Local scratch work.
+cs336_basics/caogao_linux/
