@@ -168,3 +168,4 @@ runs/
 
 # Local scratch work.
 cs336_basics/caogao_linux/
+runs/**/checkpoint.pt
